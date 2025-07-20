@@ -1,5 +1,3 @@
-import { PrismaClient } from "../generated/prisma";
-
 // Global test setup
 beforeAll(async () => {
   // Set test environment

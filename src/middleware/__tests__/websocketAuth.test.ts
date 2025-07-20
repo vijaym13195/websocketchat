@@ -23,7 +23,7 @@ describe("WebSocket Authentication Middleware", () => {
     lastName: "Doe",
     isActive: true,
     createdAt: new Date("2023-01-01"),
-    lastLoginAt: null,
+    lastLoginAt: undefined,
   };
 
   beforeEach(() => {
@@ -33,7 +33,13 @@ describe("WebSocket Authentication Middleware", () => {
         auth: {},
         query: {},
         headers: {},
-      },
+        time: "",
+        address: "",
+        xdomain: false,
+        secure: false,
+        issued: 0,
+        url: "",
+      } as any,
       emit: jest.fn(),
     };
     mockNext = jest.fn();

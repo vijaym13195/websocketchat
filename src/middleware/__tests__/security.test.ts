@@ -161,7 +161,7 @@ describe("Security Middleware", () => {
 
   describe("securityHeaders", () => {
     it("should set security headers", () => {
-      mockReq.secure = true;
+      (mockReq as any).secure = true;
 
       securityHeaders(mockReq as Request, mockRes as Response, mockNext);
 
@@ -203,7 +203,7 @@ describe("Security Middleware", () => {
     });
 
     it("should not set HSTS header for non-HTTPS requests", () => {
-      mockReq.secure = false;
+      (mockReq as any).secure = false;
       (mockReq.get as jest.Mock).mockReturnValue("http");
 
       securityHeaders(mockReq as Request, mockRes as Response, mockNext);
@@ -218,7 +218,7 @@ describe("Security Middleware", () => {
 
   describe("ipWhitelist", () => {
     it("should allow requests from whitelisted IPs", () => {
-      mockReq.ip = "192.168.1.1";
+      (mockReq as any).ip = "192.168.1.1";
       const middleware = ipWhitelist(["192.168.1.1", "10.0.0.1"]);
 
       middleware(mockReq as Request, mockRes as Response, mockNext);
@@ -228,7 +228,7 @@ describe("Security Middleware", () => {
     });
 
     it("should reject requests from non-whitelisted IPs", () => {
-      mockReq.ip = "192.168.1.100";
+      (mockReq as any).ip = "192.168.1.100";
       const middleware = ipWhitelist(["192.168.1.1", "10.0.0.1"]);
 
       middleware(mockReq as Request, mockRes as Response, mockNext);
@@ -244,7 +244,7 @@ describe("Security Middleware", () => {
     });
 
     it("should allow all requests when no whitelist is configured", () => {
-      mockReq.ip = "192.168.1.100";
+      (mockReq as any).ip = "192.168.1.100";
       const middleware = ipWhitelist([]);
 
       middleware(mockReq as Request, mockRes as Response, mockNext);
@@ -254,7 +254,7 @@ describe("Security Middleware", () => {
     });
 
     it("should use connection.remoteAddress as fallback", () => {
-      mockReq.ip = undefined;
+      (mockReq as any).ip = undefined;
       mockReq.connection = { remoteAddress: "192.168.1.1" } as any;
       const middleware = ipWhitelist(["192.168.1.1"]);
 

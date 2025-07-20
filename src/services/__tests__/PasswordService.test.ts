@@ -58,7 +58,8 @@ describe("PasswordService", () => {
 
   describe("validatePasswordStrength", () => {
     it("should accept strong password", () => {
-      const result = validatePasswordStrength("StrongPass123!");
+      const result = validatePasswordStrength("StrongPass456!");
+      console.log("Password validation result:", result);
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });

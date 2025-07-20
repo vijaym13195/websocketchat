@@ -596,3 +596,12 @@ npm test -- --watch --verbose --testNamePattern="password"
 ```
 
 This comprehensive testing guide covers all aspects of testing the authentication system. Use these commands based on your specific testing needs, whether for development, debugging, or CI/CD pipelines.
+
+## npm test -- src/errors/**tests**/AuthErrors.test.ts src/middleware/**tests**/websocketAuth.test.ts src/middleware/**tests**/auth.test.ts src/services/**tests**/PasswordService.test.ts
+
+```
+npm test -- src/errors/__tests__/AuthErrors.test.ts          # Error handling ✅
+npm test -- src/middleware/__tests__/auth.test.ts            # Auth middleware ✅
+npm test -- src/middleware/__tests__/websocketAuth.test.ts   # WebSocket auth ✅
+npm test -- src/services/__tests__/PasswordService.test.ts   # Password service ✅
+```

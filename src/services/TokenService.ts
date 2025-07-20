@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { PrismaClient } from "../../generated/prisma";
+import { PrismaClient } from "@prisma/client";
 
 export interface TokenPayload {
   userId: string;
@@ -35,7 +35,7 @@ export function generateAccessToken(userId: string, email: string): string {
     expiresIn: JWT_ACCESS_EXPIRES_IN,
     issuer: "websocketchat",
     audience: "websocketchat-users",
-  });
+  } as jwt.SignOptions);
 }
 
 export function generateRefreshToken(): string {

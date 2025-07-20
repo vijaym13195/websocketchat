@@ -25,7 +25,7 @@ describe("Authentication Middleware", () => {
     lastName: "Doe",
     isActive: true,
     createdAt: new Date("2023-01-01"),
-    lastLoginAt: null,
+    lastLoginAt: undefined,
   };
 
   beforeEach(() => {

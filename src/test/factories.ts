@@ -1,4 +1,4 @@
-import { User } from "../generated/prisma";
+import { User } from "@prisma/client";
 import { hashPassword } from "../services/PasswordService";
 import {
   generateAccessToken,
@@ -23,7 +23,7 @@ export function createUserData(
     firstName: options.firstName || "John",
     lastName: options.lastName || "Doe",
     isActive: options.isActive !== undefined ? options.isActive : true,
-    lastLoginAt: null,
+    lastLoginAt: undefined,
   };
 }
 

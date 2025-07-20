@@ -37,7 +37,7 @@ export function validateRequest(schema: {
             },
           });
         }
-        req.params = paramsResult.data;
+        req.params = paramsResult.data as any;
       }
 
       // Validate query parameters
@@ -52,7 +52,7 @@ export function validateRequest(schema: {
             },
           });
         }
-        req.query = queryResult.data;
+        req.query = queryResult.data as any;
       }
 
       next();

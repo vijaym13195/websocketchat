@@ -1,4 +1,4 @@
-import { PrismaClient, User } from "../../generated/prisma";
+import { PrismaClient, User } from "@prisma/client";
 
 export interface CreateUserData {
   email: string;
@@ -136,11 +136,11 @@ export function toPublicUser(user: User): PublicUser {
   return {
     id: user.id,
     email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
+    firstName: user.firstName || undefined,
+    lastName: user.lastName || undefined,
     isActive: user.isActive,
     createdAt: user.createdAt,
-    lastLoginAt: user.lastLoginAt,
+    lastLoginAt: user.lastLoginAt || undefined,
   };
 }
 

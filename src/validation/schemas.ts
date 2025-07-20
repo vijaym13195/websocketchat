@@ -147,7 +147,7 @@ export interface ValidationError {
 }
 
 export function formatZodError(error: z.ZodError): ValidationError[] {
-  return error.errors.map((err) => ({
+  return error.issues.map((err: any) => ({
     field: err.path.join("."),
     message: err.message,
   }));
@@ -174,7 +174,7 @@ export function validatePassword(password: string): {
     if (error instanceof z.ZodError) {
       return {
         isValid: false,
-        errors: error.errors.map((err) => err.message),
+        errors: error.issues.map((err: any) => err.message),
       };
     }
     return { isValid: false, errors: ["Invalid password"] };

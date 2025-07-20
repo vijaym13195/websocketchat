@@ -308,7 +308,7 @@ export function slowDown(delayAfter: number = 5, delayMs: number = 500) {
   const attempts = new Map<string, number>();
 
   return (req: Request, res: Response, next: NextFunction) => {
-    const key = req.ip;
+    const key = req.ip || "unknown";
     const currentAttempts = attempts.get(key) || 0;
 
     if (currentAttempts >= delayAfter) {

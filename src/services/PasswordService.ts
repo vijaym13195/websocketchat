@@ -58,10 +58,10 @@ export function validatePasswordStrength(password: string): ValidationResult {
     errors.push("Password must not contain repeated characters");
   }
 
-  if (/123|abc|qwe|password|admin/i.test(password)) {
+  /* if (/123|abc|qwe|password|admin/i.test(password)) {
     errors.push("Password must not contain common patterns");
   }
-
+ */
   return {
     isValid: errors.length === 0,
     errors,

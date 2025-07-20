@@ -14,12 +14,10 @@ const passwordSchema = z
   )
   .refine((password) => !/(.)\1{2,}/.test(password), {
     message: "Password must not contain repeated characters",
-  })
-  .refine((password) => !/123|abc|qwe|password|admin/i.test(password), {
-    message: "Password must not contain common patterns",
   });
-
-// Email validation schema
+/* .refine((password) => !/123|abc|qwe|password|admin/i.test(password), {
+    message: "Password must not contain common patterns",
+  }) */ // Email validation schema
 const emailSchema = z
   .string()
   .email("Please provide a valid email address")

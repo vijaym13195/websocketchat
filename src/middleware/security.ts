@@ -15,12 +15,8 @@ export const authRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req: Request) => {
-    // Rate limit by IP and email (if provided)
-    const email = req.body?.email || "";
-    return `${req.ip}:${email}`;
-  },
-  skip: (req: Request) => {
+  // Use default keyGenerator which handles IPv6 properly
+  skip: (req: Request, _res: Response) => {
     // Skip rate limiting for successful requests in development
     return process.env.NODE_ENV === "development" && req.method === "GET";
   },
@@ -155,20 +151,32 @@ function parseSize(size: string): number {
 }
 
 // Input sanitization middleware
-export function sanitizeInput(req: Request, res: Response, next: NextFunction) {
+export function sanitizeInput(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+) {
   // Sanitize body
   if (req.body && typeof req.body === "object") {
     req.body = sanitizeObject(req.body);
   }
 
-  // Sanitize query parameters
+  // Sanitize query parameters (modify in place since query is read-only)
   if (req.query && typeof req.query === "object") {
-    req.query = sanitizeObject(req.query);
+    for (const [key, value] of Object.entries(req.query)) {
+      if (typeof value === "string") {
+        (req.query as any)[key] = sanitizeObject(value);
+      }
+    }
   }
 
-  // Sanitize params
+  // Sanitize params (modify in place since params is read-only)
   if (req.params && typeof req.params === "object") {
-    req.params = sanitizeObject(req.params);
+    for (const [key, value] of Object.entries(req.params)) {
+      if (typeof value === "string") {
+        (req.params as any)[key] = sanitizeObject(value);
+      }
+    }
   }
 
   next();
@@ -235,7 +243,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
   const requestId = `req_${Date.now()}_${Math.random()
     .toString(36)
-    .substr(2, 9)}`;
+    .substring(2, 11)}`;
 
   // Add request ID to request object
   (req as any).requestId = requestId;
@@ -267,7 +275,7 @@ export function ipWhitelist(allowedIPs: string[] = []) {
       return next(); // No whitelist configured, allow all
     }
 
-    const clientIP = req.ip || req.connection.remoteAddress || "";
+    const clientIP = req.ip || req.socket.remoteAddress || "";
 
     if (!allowedIPs.includes(clientIP)) {
       return res.status(403).json({
@@ -362,7 +370,7 @@ export function validateContentType(
 export function addRequestId(req: Request, res: Response, next: NextFunction) {
   const requestId =
     req.get("X-Request-ID") ||
-    `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
   (req as any).requestId = requestId;
   res.setHeader("X-Request-ID", requestId);

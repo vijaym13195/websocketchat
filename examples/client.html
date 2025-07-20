@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Chat with Authentication</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .container {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      .hidden {
+        display: none;
+      }
+      input,
+      button,
+      textarea {
+        margin: 5px;
+        padding: 8px;
+      }
+      #messages {
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: #f9f9f9;
+      }
+      .message {
+        margin-bottom: 10px;
+        padding: 5px;
+        border-left: 3px solid #007bff;
+        background-color: white;
+      }
+      .error {
+        color: red;
+        font-weight: bold;
+      }
+      .success {
+        color: green;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WebSocket Chat with Authentication</h1>
+
+    <!-- Authentication Section -->
+    <div id="auth-section" class="container">
+      <h2>Authentication</h2>
+      <div id="login-form">
+        <h3>Login</h3>
+        <input
+          type="email"
+          id="login-email"
+          placeholder="Email"
+          value="test@example.com"
+        />
+        <input
+          type="password"
+          id="login-password"
+          placeholder="Password"
+          value="TestPassword123!"
+        />
+        <button onclick="login()">Login</button>
+      </div>
+
+      <div id="register-form">
+        <h3>Register</h3>
+        <input
+          type="email"
+          id="register-email"
+          placeholder="Email"
+          value="newuser@example.com"
+        />
+        <input
+          type="password"
+          id="register-password"
+          placeholder="Password"
+          value="NewPassword123!"
+        />
+        <input
+          type="text"
+          id="register-firstname"
+          placeholder="First Name"
+          value="John"
+        />
+        <input
+          type="text"
+          id="register-lastname"
+          placeholder="Last Name"
+          value="Doe"
+        />
+        <button onclick="register()">Register</button>
+      </div>
+
+      <div id="auth-status"></div>
+    </div>
+
+    <!-- Chat Section -->
+    <div id="chat-section" class="container hidden">
+      <h2>Chat</h2>
+      <div id="user-info"></div>
+      <div id="messages"></div>
+      <div>
+        <input
+          type="text"
+          id="message-input"
+          placeholder="Type a message..."
+          onkeypress="handleKeyPress(event)"
+        />
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="logout()">Logout</button>
+      </div>
+      <div>
+        <input type="text" id="room-input" placeholder="Room name" />
+        <button onclick="joinRoom()">Join Room</button>
+        <button onclick="leaveRoom()">Leave Room</button>
+      </div>
+    </div>
+
+    <script>
+      let socket = null;
+      let accessToken = null;
+      let refreshToken = null;
+      let currentUser = null;
+
+      // Authentication functions
+      async function login() {
+        const email = document.getElementById("login-email").value;
+        const password = document.getElementById("login-password").value;
+
+        try {
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            accessToken = data.data.accessToken;
+            refreshToken = data.data.refreshToken;
+            currentUser = data.data.user;
+
+            showAuthStatus("Login successful!", "success");
+            showChatSection();
+            connectWebSocket();
+          } else {
+            showAuthStatus("Login failed: " + data.error.message, "error");
+          }
+        } catch (error) {
+          showAuthStatus("Login error: " + error.message, "error");
+        }
+      }
+
+      async function register() {
+        const email = document.getElementById("register-email").value;
+        const password = document.getElementById("register-password").value;
+        const firstName = document.getElementById("register-firstname").value;
+        const lastName = document.getElementById("register-lastname").value;
+
+        try {
+          const response = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password, firstName, lastName }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            accessToken = data.data.accessToken;
+            refreshToken = data.data.refreshToken;
+            currentUser = data.data.user;
+
+            showAuthStatus("Registration successful!", "success");
+            showChatSection();
+            connectWebSocket();
+          } else {
+            showAuthStatus(
+              "Registration failed: " + data.error.message,
+              "error"
+            );
+          }
+        } catch (error) {
+          showAuthStatus("Registration error: " + error.message, "error");
+        }
+      }
+
+      async function logout() {
+        try {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ refreshToken }),
+          });
+        } catch (error) {
+          console.error("Logout error:", error);
+        }
+
+        // Clear tokens and disconnect
+        accessToken = null;
+        refreshToken = null;
+        currentUser = null;
+
+        if (socket) {
+          socket.disconnect();
+          socket = null;
+        }
+
+        showAuthSection();
+        showAuthStatus("Logged out successfully", "success");
+      }
+
+      // WebSocket functions
+      function connectWebSocket() {
+        socket = io("/", {
+          auth: {
+            token: accessToken,
+          },
+        });
+
+        socket.on("connect", () => {
+          console.log("Connected to WebSocket");
+          addMessage("Connected to chat server", "system");
+        });
+
+        socket.on("disconnect", (reason) => {
+          console.log("Disconnected from WebSocket:", reason);
+          addMessage("Disconnected from chat server: " + reason, "system");
+        });
+
+        socket.on("chat:message", (data) => {
+          addMessage(
+            `${data.user.firstName} ${data.user.lastName}: ${data.message}`,
+            "message"
+          );
+        });
+
+        socket.on("chat:message:sent", (data) => {
+          addMessage("Message sent successfully", "success");
+        });
+
+        socket.on("chat:joined", (data) => {
+          addMessage(`Joined room: ${data.room}`, "success");
+        });
+
+        socket.on("chat:left", (data) => {
+          addMessage(`Left room: ${data.room}`, "success");
+        });
+
+        socket.on("chat:user:joined", (data) => {
+          addMessage(
+            `${data.user.firstName} ${data.user.lastName} joined the room`,
+            "info"
+          );
+        });
+
+        socket.on("chat:user:left", (data) => {
+          addMessage(
+            `${data.user.firstName} ${data.user.lastName} left the room`,
+            "info"
+          );
+        });
+
+        socket.on("error", (error) => {
+          console.error("Socket error:", error);
+          addMessage("Error: " + error.message, "error");
+        });
+
+        socket.on("connect_error", (error) => {
+          console.error("Connection error:", error);
+          addMessage("Connection error: " + error.message, "error");
+        });
+      }
+
+      // Chat functions
+      function sendMessage() {
+        const messageInput = document.getElementById("message-input");
+        const message = messageInput.value.trim();
+
+        if (message && socket) {
+          socket.emit("chat:message", { message });
+          messageInput.value = "";
+        }
+      }
+
+      function joinRoom() {
+        const roomInput = document.getElementById("room-input");
+        const room = roomInput.value.trim();
+
+        if (room && socket) {
+          socket.emit("chat:join", { room });
+        }
+      }
+
+      function leaveRoom() {
+        const roomInput = document.getElementById("room-input");
+        const room = roomInput.value.trim();
+
+        if (room && socket) {
+          socket.emit("chat:leave", { room });
+        }
+      }
+
+      function handleKeyPress(event) {
+        if (event.key === "Enter") {
+          sendMessage();
+        }
+      }
+
+      // UI functions
+      function showAuthSection() {
+        document.getElementById("auth-section").classList.remove("hidden");
+        document.getElementById("chat-section").classList.add("hidden");
+      }
+
+      function showChatSection() {
+        document.getElementById("auth-section").classList.add("hidden");
+        document.getElementById("chat-section").classList.remove("hidden");
+
+        if (currentUser) {
+          document.getElementById(
+            "user-info"
+          ).innerHTML = `<strong>Welcome, ${currentUser.firstName} ${currentUser.lastName}!</strong> (${currentUser.email})`;
+        }
+      }
+
+      function showAuthStatus(message, type) {
+        const statusDiv = document.getElementById("auth-status");
+        statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+
+        // Clear after 5 seconds
+        setTimeout(() => {
+          statusDiv.innerHTML = "";
+        }, 5000);
+      }
+
+      function addMessage(message, type = "message") {
+        const messagesDiv = document.getElementById("messages");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${type}`;
+        messageDiv.innerHTML = `<small>${new Date().toLocaleTimeString()}</small> - ${message}`;
+        messagesDiv.appendChild(messageDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      // Initialize
+      document.addEventListener("DOMContentLoaded", () => {
+        showAuthSection();
+      });
+    </script>
+  </body>
+</html>
